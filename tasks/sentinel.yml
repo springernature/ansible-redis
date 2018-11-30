@@ -45,13 +45,6 @@
     - ansible_service_mgr|default() == "systemd"
     - (redis_sentinel_pidfile|dirname).startswith("/var/run") or (redis_sentinel_pidfile|dirname).startswith("/run")
 
-- name: reload systemd daemon
-  command: systemctl daemon-reload
-  when:
-    - redis_as_service
-    - ansible_service_mgr|default() == "systemd"
-    - sentinel_unit_file|changed
-
 - name: set sentinel to start at boot
   service:
     name: sentinel_{{ redis_sentinel_port }}
@@ -101,10 +94,24 @@
     - redis_sentinel_pidfile != '""'
     - not sentinel_piddir.stat.exists
 
-- name: create sentinel config file
+- name: check if sentinel dynamic config file exists
+  stat:
+    path: /etc/redis/sentinel_{{ redis_sentinel_port }}.conf
+  register: sentinel_config_file
+
+- name: create initial sentinel dynamic config file
   template:
     src: redis_sentinel.conf.j2
     dest: /etc/redis/sentinel_{{ redis_sentinel_port }}.conf
+    owner: "{{ redis_user }}"
+    mode: 0640
+  when: not sentinel_config_file.stat.exists
+  notify: "restart sentinel {{ redis_sentinel_port }}"
+
+- name: create static sentinel config file
+  template:
+    src: redis_sentinel.include.conf.j2
+    dest: /etc/redis/sentinel_{{ redis_sentinel_port }}.include.conf
     owner: "{{ redis_user }}"
     mode: 0640
   notify: "restart sentinel {{ redis_sentinel_port }}"

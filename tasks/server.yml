@@ -45,13 +45,6 @@
     - ansible_service_mgr|default() == 'systemd'
     - (redis_pidfile|dirname).startswith('/var/run') or (redis_pidfile|dirname).startswith('/run')
 
-- name: reload systemd daemon
-  command: systemctl daemon-reload
-  when:
-    - redis_as_service
-    - ansible_service_mgr|default() == "systemd"
-    - redis_unit_file|changed
-
 - name: set redis to start at boot
   service:
     name: "{{ redis_service_name }}"
@@ -101,10 +94,24 @@
     - redis_pidfile != '""'
     - not piddir.stat.exists
 
-- name: create redis config file
+- name: check for dynamic redis config file
+  stat:
+    path: /etc/redis/{{ redis_port }}.conf
+  register: redis_config_file
+
+- name: create dynamic redis config file
   template:
     src: redis.conf.j2
     dest: /etc/redis/{{ redis_port }}.conf
+    owner: "{{ redis_user }}"
+    mode: 0640
+  when: not redis_config_file.stat.exists
+  notify: "restart redis {{ redis_port }}"
+
+- name: create static redis config file
+  template:
+    src: redis_include.conf.j2
+    dest: /etc/redis/{{ redis_port }}.include.conf
     owner: "{{ redis_user }}"
     mode: 0640
   notify: "restart redis {{ redis_port }}"

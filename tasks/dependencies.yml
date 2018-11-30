@@ -9,7 +9,8 @@
     - gcc
     - make
     - libc6-dev
-    # This should be `else omit`, but that doesn't quite work, so duplicate gcc
+    - dnsutils
+    # This should be `else omit`, but it fails on Ansible 1.x, so just duplicate gcc
     - "{{ 'libc6-dev-i386' if redis_make_32bit|bool else 'gcc' }}"
   when: ansible_os_family == "Debian"
 
@@ -20,6 +21,7 @@
   with_items:
     - gcc
     - make
+    - bind-utils
   when: ansible_os_family == "RedHat"
 
 # Conditionally install the i686 build of libgcc if we are building 32-bit
@@ -28,13 +30,13 @@
 - name: update libgcc on rhel for 32-bit dependencies
   yum:
     name: libgcc
-    state: latest
+    state: present
   when: ansible_os_family == "RedHat" and redis_make_32bit|bool
 
 - name: install redhat 32-bit dependencies
   yum:
     name: "{{ item }}"
-    state: latest
+    state: present
   with_items:
     - libgcc.i686
     - glibc-devel.i686
@@ -47,7 +49,7 @@
   with_items:
     - gcc
     - make
-    # These should be `else omit`, but that doesn't quite work, so duplicate gcc
+    # This should be `else omit`, but it fails on Ansible 1.x, so just duplicate gcc
     - "{{ 'gcc-32bit' if redis_make_32bit|bool else 'gcc' }}"
     - "{{ 'libgcc_s1-32bit' if redis_make_32bit|bool else 'gcc' }}"
   when: ansible_os_family == 'Suse'
