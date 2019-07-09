@@ -1,0 +1,32 @@
+---
+
+- include_role:
+   name: de.ruok_conf_snippet
+  vars:
+   ruok_conf_snippet_name: redis-health
+   ruok_conf_snippet_probes:
+     - name: "data-disk-filesystem-health"
+       type: "directory"
+       healthcheck:
+         path:      /
+         readable:  true
+         writeable: true
+     - name: "data-disk-usage"
+       type: "disk"
+       healthcheck:
+         path:     /
+         usage-threshold: 75
+     - name: "redis-port"
+       type: "port"
+       healthcheck:
+         host:        "{{ ansible_default_ipv4.address }}"
+         port:        "6379"
+         timeout:      1000
+         status_code: "open"
+     - name: "sentinel-port"
+       type: "port"
+       healthcheck:
+         host:        "{{ ansible_default_ipv4.address }}"
+         port:        "26379"
+         timeout:      1000
+         status_code: "open"
