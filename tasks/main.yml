@@ -26,4 +26,3 @@
 - include: local_facts.yml
   when: redis_local_facts|bool
 
-- include: redis_ruok_probe.yml
